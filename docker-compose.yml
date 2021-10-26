@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+    # TalabatOnline App
+    app:
+        build: .
+        container_name: finance-code
+        restart: unless-stopped
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        networks:
+          - talabat-network
+        depends_on:
+            - db
+
+    # Nginx webserver
+    webserver:
+        image: nginx:alpine
+        container_name: webserver
+        restart: unless-stopped
+        tty: true
+        volumes:
+            - ./dockerize/nginx/conf.d/:/etc/nginx/conf.d/
+            - ./:/var/www
+        networks:
+            - talabat-network
+        depends_on:
+            -   app
+        ports:
+            - "8085:80"
+#            - "443:443"
+
+    # TalabatOnline database
+    db:
+        image: mysql:5.7
+        container_name: finance-db
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: talabatdb
+            MYSQL_ROOT_PASSWORD: talabatsecret
+            MYSQL_PASSWORD: talabatsecret
+            MYSQL_USER: talabatuser
+            SERVICE_TAGS: dev
+            SERVICE_NAME: mysql
+        networks:
+            - talabat-network
+        volumes:
+            - ./dockerize/mysql:/var/lib/mysql
+
+    # Redis, we use it for cache etc..
+    redis:
+        image: redis
+        restart: unless-stopped
+
+networks:
+    talabat-network:
+        driver: bridge
